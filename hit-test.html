@@ -86,7 +86,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
       // Ensure the background is transparent for AR.
       scene.clear = false;
 
-      function initXR() {
+      async function initXR() {
         xrButton = new WebXRButton({
           onRequestSession: onRequestSession,
           onEndSession: onEndSession,
@@ -97,10 +97,8 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
         document.querySelector('header').appendChild(xrButton.domElement);
 
         if (navigator.xr) {
-          navigator.xr.isSessionSupported('immersive-ar')
-                      .then((supported) => {
-            xrButton.enabled = supported;
-          });
+          let supported = await navigator.xr.isSessionSupported('immersive-ar');
+          xrButton.enabled = supported;
         }
       }
 
@@ -112,7 +110,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
         });
       }
 
-      function onSessionStarted(session) {
+      async function onSessionStarted(session) {
         session.addEventListener('end', onSessionEnded);
         session.addEventListener('select', onSelect);
 
@@ -132,18 +130,13 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
         // position and render a reticle where it intersects with a real world
         // surface. To do this we first get the viewer space, then create a
         // hitTestSource that tracks it.
-        session.requestReferenceSpace('viewer').then((refSpace) => {
-          xrViewerSpace = refSpace;
-          session.requestHitTestSource({ space: xrViewerSpace }).then((hitTestSource) => {
-            xrHitTestSource = hitTestSource;
-          });
-        });
+        let xrViewerSpace = await session.requestReferenceSpace('viewer');
+        let hitTestSource = await session.requestHitTestSource({ space: xrViewerSpace });
+        xrHitTestSource = hitTestSource;
 
-        session.requestReferenceSpace('local').then((refSpace) => {
-          xrRefSpace = refSpace;
+        xrRefSpace = await session.requestReferenceSpace('local');
 
-          session.requestAnimationFrame(onXRFrame);
-        });
+        session.requestAnimationFrame(onXRFrame);
       }
 
       function onEndSession(session) {
@@ -179,8 +172,8 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
       let rayDirection = vec3.create();
       function onSelect(event) {
         if (reticle.visible) {
-          // The reticle should already be positioned at the latest hit point, 
-          // so we can just use it's matrix to save an unnecessary call to 
+          // The reticle should already be positioned at the latest hit point,
+          // so we can just use it's matrix to save an unnecessary call to
           // event.frame.getHitTestResults.
           addARObjectAt(reticle.matrix);
         }
